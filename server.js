@@ -45,16 +45,17 @@ wss.on('connection', (ws) => {
 
   ws.on('message', async (data) => {
     const message = JSON.parse(data);
+    console.log('📩 Message reçu :', JSON.stringify(message));
 
-   console.log('📩 Message reçu :', JSON.stringify(message));
+    const text = message.text || message.voicePrompt;
 
-    if ((message.type === 'speech' || message.type === 'prompt') && message.text) {
-      console.log(`🗣️ Client dit : "${message.text}"`);
+    if ((message.type === 'speech' || message.type === 'prompt') && text) {
+      console.log(`🗣️ Client dit : "${text}"`);
 
       try {
         const response = await axios.post(process.env.N8N_WEBHOOK_URL, {
           callId: callId,
-          text: message.text,
+          text: text,
           from: message.from || 'inconnu'
         });
 
