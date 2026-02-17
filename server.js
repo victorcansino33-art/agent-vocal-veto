@@ -19,8 +19,9 @@ app.post('/incoming-call', (req, res) => {
           tts="elevenlabs"
           voice="${process.env.ELEVENLABS_VOICE_ID}"
           language="fr-FR"
+          ttsModel="eleven_flash_v2_5"
           transcriptionProvider="deepgram"
-          welcomeGreeting="Bonjour, clinique vétérinaire, comment puis-je vous aider ?"
+          welcomeGreeting="Bonjour, clinique vétérinaire du Parc, comment puis-je vous aider ?"
         />
       </Connect>
     </Response>
