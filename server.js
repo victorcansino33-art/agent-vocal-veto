@@ -38,6 +38,47 @@ const server = http.createServer(app);
 
 const wss = new WebSocket.Server({ server, path: '/ws' });
 
+// Fonction pour extraire la réponse peu importe le format de n8n
+function parseN8nResponse(data) {
+  try {
+    // Si c'est un tableau, prend le premier élément
+    if (Array.isArray(data)) {
+      data = data[0];
+    }
+
+    // Si c'est déjà le bon format { action, message }
+    if (data.action && data.message) {
+      return data;
+    }
+
+    // Si c'est dans un champ "output" (format AI Agent n8n)
+    let output = data.output || data.text || data.response || '';
+
+    // Si output est un objet
+    if (typeof output === 'object') {
+      if (output.action && output.message) return output;
+      output = JSON.stringify(output);
+    }
+
+    // Nettoyer les backticks markdown
+    output = output.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+    // Essayer de parser le JSON
+    const parsed = JSON.parse(output);
+    if (parsed.action && parsed.message) {
+      return parsed;
+    }
+
+    // Si rien ne marche, retourner comme message simple
+    return { action: 'reply', message: output };
+
+  } catch (e) {
+    // Dernier recours : utiliser le texte brut
+    const text = typeof data === 'string' ? data : JSON.stringify(data);
+    return { action: 'reply', message: text };
+  }
+}
+
 wss.on('connection', (ws) => {
   console.log('🔗 WebSocket connecté — conversation démarrée');
 
@@ -53,13 +94,17 @@ wss.on('connection', (ws) => {
       console.log(`🗣️ Client dit : "${text}"`);
 
       try {
+        console.log('📤 Envoi à n8n...');
         const response = await axios.post(process.env.N8N_WEBHOOK_URL, {
           callId: callId,
           text: text,
           from: message.from || 'inconnu'
-        });
+        }, { timeout: 30000 });
 
-        const reply = response.data;
+        console.log('📥 Réponse n8n brute :', JSON.stringify(response.data));
+
+        const reply = parseN8nResponse(response.data);
+        console.log('✅ Réponse parsée :', JSON.stringify(reply));
 
         if (reply.action === 'transfer') {
           console.log('🚨 Transfert urgence vers :', reply.transferTo);
