@@ -46,7 +46,9 @@ wss.on('connection', (ws) => {
   ws.on('message', async (data) => {
     const message = JSON.parse(data);
 
-    if (message.type === 'speech' && message.text) {
+   console.log('📩 Message reçu :', JSON.stringify(message));
+
+    if ((message.type === 'speech' || message.type === 'prompt') && message.text) {
       console.log(`🗣️ Client dit : "${message.text}"`);
 
       try {
